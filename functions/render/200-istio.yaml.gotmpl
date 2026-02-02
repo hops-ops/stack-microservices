@@ -1,0 +1,31 @@
+# code: language=yaml
+#
+# Compose the base helm.hops.ops.com.ai/Istiod XR
+#
+
+{{- $ist := $state.istiod }}
+
+---
+apiVersion: helm.hops.ops.com.ai/v1alpha1
+kind: Istiod
+metadata:
+  name: {{ $state.name }}-{{ $ist.name }}
+  annotations:
+    {{ setResourceNameAnnotation "istiod" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.managementPolicies | toJson }}
+  clusterName: {{ $state.clusterName }}
+  labels: {{ $state.labels | toJson }}
+  providerConfigRef:
+    name: {{ $state.helmProviderConfigRef.name }}
+    kind: {{ $state.helmProviderConfigRef.kind }}
+  namespace: {{ $ist.namespace }}
+  name: {{ $ist.name }}
+  {{- if $ist.overrideAllValues }}
+  overrideAllValues:
+    {{- toYaml $ist.overrideAllValues | nindent 4 }}
+  {{- else if $ist.values }}
+  values:
+    {{- toYaml $ist.values | nindent 4 }}
+  {{- end }}

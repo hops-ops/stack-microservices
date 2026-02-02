@@ -1,0 +1,68 @@
+# code: language=yaml
+#
+# Ensure Knative namespaces exist for Serving/Eventing
+#
+
+{{- $k8sPCR := $state.kubernetesProviderConfigRef }}
+{{- $knServing := $state.knativeServing }}
+{{- $knEventing := $state.knativeEventing }}
+{{- $servingNs := $knServing.namespace }}
+{{- $eventingNs := $knEventing.namespace }}
+
+# ==============================================================================
+# Namespace: knative-serving
+# ==============================================================================
+{{- if $knServing.enabled }}
+---
+apiVersion: kubernetes.m.crossplane.io/v1alpha1
+kind: Object
+metadata:
+  name: {{ $state.name }}-knative-serving-namespace
+  annotations:
+    {{ setResourceNameAnnotation "namespace-knative-serving" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.managementPolicies | toJson }}
+  forProvider:
+    manifest:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: {{ $servingNs }}
+        labels: {{ $state.labels | toJson }}
+  providerConfigRef:
+    name: {{ $k8sPCR.name }}
+    kind: {{ $k8sPCR.kind }}
+  readiness:
+    policy: DeriveFromCelQuery
+    celQuery: "has(object.metadata.uid)"
+{{- end }}
+
+# ==============================================================================
+# Namespace: knative-eventing (only if distinct or serving disabled)
+# ==============================================================================
+{{- if and $knEventing.enabled (or (not $knServing.enabled) (ne $eventingNs $servingNs)) }}
+---
+apiVersion: kubernetes.m.crossplane.io/v1alpha1
+kind: Object
+metadata:
+  name: {{ $state.name }}-knative-eventing-namespace
+  annotations:
+    {{ setResourceNameAnnotation "namespace-knative-eventing" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.managementPolicies | toJson }}
+  forProvider:
+    manifest:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: {{ $eventingNs }}
+        labels: {{ $state.labels | toJson }}
+  providerConfigRef:
+    name: {{ $k8sPCR.name }}
+    kind: {{ $k8sPCR.kind }}
+  readiness:
+    policy: DeriveFromCelQuery
+    celQuery: "has(object.metadata.uid)"
+{{- end }}

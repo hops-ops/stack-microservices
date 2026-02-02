@@ -1,0 +1,44 @@
+# code: language=yaml
+#
+# Extract observed state from all composed resources and compute status
+#
+
+{{- $observed := $.observed.resources | default dict }}
+
+# ==============================================================================
+# Helper: check readiness of a composed resource by annotation name
+# ==============================================================================
+
+{{- $checkReady := dict }}
+{{- range $key := list "istiod" "knative-operator" "namespace-knative-serving" "namespace-knative-eventing" "knative-serving" "knative-eventing" "nats" }}
+  {{- $entry := get $observed $key | default dict }}
+  {{- $resource := $entry.resource | default dict }}
+  {{- $status := $resource.status | default dict }}
+  {{- $ready := false }}
+  {{- range ($status.conditions | default list) }}
+    {{- if and (eq .type "Ready") (eq .status "True") }}
+      {{- $ready = true }}
+    {{- end }}
+  {{- end }}
+  {{- $checkReady = set $checkReady $key $ready }}
+{{- end }}
+
+# ==============================================================================
+# Set observed state
+# ==============================================================================
+{{- $state = set $state "observed" (dict
+  "istiod" (dict "ready" (get $checkReady "istiod"))
+  "knativeOperator" (dict "ready" (get $checkReady "knative-operator"))
+  "namespaceKnativeServing" (dict "ready" (get $checkReady "namespace-knative-serving"))
+  "namespaceKnativeEventing" (dict "ready" (get $checkReady "namespace-knative-eventing"))
+  "knativeServing" (dict "ready" (get $checkReady "knative-serving"))
+  "knativeEventing" (dict "ready" (get $checkReady "knative-eventing"))
+  "nats" (dict "ready" (get $checkReady "nats"))
+) }}
+
+# ==============================================================================
+# Compute status (readiness determined by function-auto-ready)
+# ==============================================================================
+{{- $state = set $state "status" (dict
+  "ready" false
+) }}

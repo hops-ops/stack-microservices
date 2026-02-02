@@ -1,0 +1,71 @@
+# code: language=yaml
+#
+# Create KnativeServing CR via provider-kubernetes Object resource
+#
+
+{{- $knServing := $state.knativeServing }}
+{{- $k8sPCR := $state.kubernetesProviderConfigRef }}
+{{- $servingNsReady := $state.observed.namespaceKnativeServing.ready }}
+
+# ==============================================================================
+# Knative Serving
+# ==============================================================================
+# Gated on: knative-operator + serving namespace must be ready
+{{- if and $knServing.enabled $state.observed.knativeOperator.ready $servingNsReady }}
+---
+apiVersion: kubernetes.m.crossplane.io/v1alpha1
+kind: Object
+metadata:
+  name: {{ $state.name }}-{{ $knServing.name }}
+  annotations:
+    {{ setResourceNameAnnotation "knative-serving" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.managementPolicies | toJson }}
+  forProvider:
+    manifest:
+      apiVersion: operator.knative.dev/v1beta1
+      kind: KnativeServing
+      metadata:
+        name: {{ $knServing.name }}
+        namespace: {{ $knServing.namespace }}
+      spec:
+        {{- if $knServing.overrideAllSpec }}
+        {{- toYaml $knServing.overrideAllSpec | nindent 8 }}
+        {{- else }}
+        {{- toYaml $knServing.spec | nindent 8 }}
+        {{- end }}
+  providerConfigRef:
+    name: {{ $k8sPCR.name }}
+    kind: {{ $k8sPCR.kind }}
+  readiness:
+    policy: DeriveFromCelQuery
+    celQuery: "has(object.metadata.uid)"
+{{- end }}
+
+# ==============================================================================
+# Usage: Protect knative-operator from deletion until knative-serving is deleted
+# ==============================================================================
+# Knative CRDs must exist for cleanup of the KnativeServing CR.
+{{- if and $state.observed.knativeOperator.ready $state.observed.knativeServing.ready }}
+---
+apiVersion: protection.crossplane.io/v1beta1
+kind: Usage
+metadata:
+  name: {{ $state.name }}-delete-knative-serving-before-knative-operator
+  annotations:
+    {{ setResourceNameAnnotation "usage-knative-serving" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  replayDeletion: true
+  of:
+    apiVersion: helm.hops.ops.com.ai/v1alpha1
+    kind: KnativeOperator
+    resourceRef:
+      name: {{ $state.name }}-{{ $state.knativeOperator.name }}
+  by:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-{{ $knServing.name }}
+{{- end }}

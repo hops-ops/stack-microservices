@@ -1,0 +1,33 @@
+# code: language=yaml
+#
+# Compose the base helm.hops.ops.com.ai/NATS XR (optional)
+#
+
+{{- $nats := $state.nats }}
+
+{{- if $nats.enabled }}
+---
+apiVersion: helm.hops.ops.com.ai/v1alpha1
+kind: NATS
+metadata:
+  name: {{ $state.name }}-{{ $nats.name }}
+  annotations:
+    {{ setResourceNameAnnotation "nats" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.managementPolicies | toJson }}
+  clusterName: {{ $state.clusterName }}
+  labels: {{ $state.labels | toJson }}
+  providerConfigRef:
+    name: {{ $state.helmProviderConfigRef.name }}
+    kind: {{ $state.helmProviderConfigRef.kind }}
+  namespace: {{ $nats.namespace }}
+  name: {{ $nats.name }}
+  {{- if $nats.overrideAllValues }}
+  overrideAllValues:
+    {{- toYaml $nats.overrideAllValues | nindent 4 }}
+  {{- else if $nats.values }}
+  values:
+    {{- toYaml $nats.values | nindent 4 }}
+  {{- end }}
+{{- end }}

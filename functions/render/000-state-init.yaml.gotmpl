@@ -1,0 +1,106 @@
+# code: language=yaml
+#
+# Initialize $state with spec defaults
+#
+
+{{- $xr := getCompositeResource . }}
+{{- $spec := $xr.spec | default dict }}
+{{- $metadata := $xr.metadata | default dict }}
+
+# ==============================================================================
+# Core defaults
+# ==============================================================================
+{{- $name := $metadata.name | default "microservices" }}
+{{- $clusterName := $spec.clusterName | default $name }}
+{{- $managementPolicies := $spec.managementPolicies | default (list "*") }}
+
+# Labels
+{{- $defaultLabels := dict
+  "hops.ops.com.ai/managed" "true"
+  "hops.ops.com.ai/microservices" $name
+}}
+{{- $labels := merge $defaultLabels ($spec.labels | default dict) }}
+
+# Helm provider config (defaults to clusterName)
+{{- $helmProviderConfigRef := $spec.helmProviderConfigRef | default dict }}
+{{- $helmProviderConfigRef = dict
+  "name" ($helmProviderConfigRef.name | default $clusterName)
+  "kind" ($helmProviderConfigRef.kind | default "ProviderConfig")
+}}
+
+# Kubernetes provider config (defaults to clusterName)
+{{- $k8sProviderConfigRef := $spec.kubernetesProviderConfigRef | default dict }}
+{{- $k8sProviderConfigRef = dict
+  "name" ($k8sProviderConfigRef.name | default $clusterName)
+  "kind" ($k8sProviderConfigRef.kind | default "ProviderConfig")
+}}
+
+# ==============================================================================
+# Per-component defaults
+# ==============================================================================
+{{- $ist := $spec.istiod | default dict }}
+{{- $knOp := $spec.knativeOperator | default dict }}
+{{- $knServing := $spec.knativeServing | default dict }}
+{{- $knEventing := $spec.knativeEventing | default dict }}
+{{- $nats := $spec.nats | default dict }}
+
+# enabled defaults (avoid default() overriding explicit false)
+{{- $knServingEnabled := true }}
+{{- if hasKey $knServing "enabled" }}
+  {{- $knServingEnabled = $knServing.enabled }}
+{{- end }}
+{{- $knEventingEnabled := true }}
+{{- if hasKey $knEventing "enabled" }}
+  {{- $knEventingEnabled = $knEventing.enabled }}
+{{- end }}
+{{- $natsEnabled := false }}
+{{- if hasKey $nats "enabled" }}
+  {{- $natsEnabled = $nats.enabled }}
+{{- end }}
+
+# ==============================================================================
+# Initialize $state
+# ==============================================================================
+{{- $state := dict
+  "name" $name
+  "clusterName" $clusterName
+  "managementPolicies" $managementPolicies
+  "labels" $labels
+  "helmProviderConfigRef" $helmProviderConfigRef
+  "kubernetesProviderConfigRef" $k8sProviderConfigRef
+  "istiod" (dict
+    "name" ($ist.name | default "istiod")
+    "namespace" ($ist.namespace | default "istio-system")
+    "values" ($ist.values | default dict)
+    "overrideAllValues" ($ist.overrideAllValues | default dict)
+  )
+  "knativeOperator" (dict
+    "name" ($knOp.name | default "knative-operator")
+    "namespace" ($knOp.namespace | default "knative-operator")
+    "values" ($knOp.values | default dict)
+    "overrideAllValues" ($knOp.overrideAllValues | default dict)
+  )
+  "knativeServing" (dict
+    "enabled" $knServingEnabled
+    "name" ($knServing.name | default "knative-serving")
+    "namespace" ($knServing.namespace | default "knative-serving")
+    "spec" ($knServing.spec | default dict)
+    "overrideAllSpec" ($knServing.overrideAllSpec | default dict)
+  )
+  "knativeEventing" (dict
+    "enabled" $knEventingEnabled
+    "name" ($knEventing.name | default "knative-eventing")
+    "namespace" ($knEventing.namespace | default "knative-eventing")
+    "spec" ($knEventing.spec | default dict)
+    "overrideAllSpec" ($knEventing.overrideAllSpec | default dict)
+  )
+  "nats" (dict
+    "enabled" $natsEnabled
+    "name" ($nats.name | default "nats")
+    "namespace" ($nats.namespace | default "nats")
+    "values" ($nats.values | default dict)
+    "overrideAllValues" ($nats.overrideAllValues | default dict)
+  )
+  "observed" (dict)
+  "status" (dict)
+}}

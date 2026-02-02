@@ -1,0 +1,7 @@
+apiVersion: stacks.hops.ops.com.ai/v1alpha1
+kind: Microservices
+metadata:
+  name: microservices
+  namespace: default
+spec:
+  clusterName: my-cluster

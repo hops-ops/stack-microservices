@@ -1,0 +1,178 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: microservices.stacks.hops.ops.com.ai
+spec:
+  group: stacks.hops.ops.com.ai
+  names:
+    kind: Microservices
+    plural: microservices
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    referenceable: true
+    served: true
+    schema:
+      openAPIV3Schema:
+        description: Microservices deploys Istio, Knative Operator, Knative Serving/Eventing, and optional NATS.
+        type: object
+        properties:
+          spec:
+            description: MicroservicesSpec defines the desired state.
+            type: object
+            properties:
+              clusterName:
+                description: Name of the target cluster. Used as default for helmProviderConfigRef.name and resource naming.
+                type: string
+              managementPolicies:
+                description: Management policies for all composed resources. Defaults to ["*"].
+                type: array
+                items:
+                  type: string
+                default:
+                - "*"
+              labels:
+                description: Custom labels applied to all managed resources.
+                type: object
+                additionalProperties:
+                  type: string
+                x-kubernetes-preserve-unknown-fields: true
+              helmProviderConfigRef:
+                description: Reference to the Helm ProviderConfig. Defaults to clusterName.
+                type: object
+                properties:
+                  name:
+                    description: Name of the Helm ProviderConfig.
+                    type: string
+                  kind:
+                    description: Kind of the ProviderConfig. Defaults to ProviderConfig.
+                    type: string
+                    enum:
+                    - ProviderConfig
+                    - ClusterProviderConfig
+              kubernetesProviderConfigRef:
+                description: Reference to the Kubernetes ProviderConfig for creating Object resources on the target cluster. Defaults to clusterName.
+                type: object
+                properties:
+                  name:
+                    description: Name of the Kubernetes ProviderConfig.
+                    type: string
+                  kind:
+                    description: Kind of the ProviderConfig. Defaults to ProviderConfig.
+                    type: string
+                    enum:
+                    - ProviderConfig
+                    - ClusterProviderConfig
+              istiod:
+                description: Configuration for the Istio control plane (istiod) component.
+                type: object
+                properties:
+                  name:
+                    description: Release name. Defaults to istiod.
+                    type: string
+                  namespace:
+                    description: Namespace for this component. Defaults to istio-system.
+                    type: string
+                  values:
+                    description: Helm values merged with defaults.
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  overrideAllValues:
+                    description: Helm values that replace all defaults.
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+              knativeOperator:
+                description: Configuration for the Knative Operator component.
+                type: object
+                properties:
+                  name:
+                    description: Release name. Defaults to knative-operator.
+                    type: string
+                  namespace:
+                    description: Namespace for this component. Defaults to knative-operator.
+                    type: string
+                  values:
+                    description: Helm values merged with defaults.
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  overrideAllValues:
+                    description: Helm values that replace all defaults.
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+              knativeServing:
+                description: Configuration for the Knative Serving instance.
+                type: object
+                properties:
+                  enabled:
+                    description: Whether to install Knative Serving. Defaults to true.
+                    type: boolean
+                    default: true
+                  name:
+                    description: KnativeServing resource name. Defaults to knative-serving.
+                    type: string
+                  namespace:
+                    description: Namespace for the KnativeServing resource. Defaults to knative-serving.
+                    type: string
+                  spec:
+                    description: Spec fields merged with defaults.
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  overrideAllSpec:
+                    description: Spec fields that replace all defaults.
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+              knativeEventing:
+                description: Configuration for the Knative Eventing instance.
+                type: object
+                properties:
+                  enabled:
+                    description: Whether to install Knative Eventing. Defaults to true.
+                    type: boolean
+                    default: true
+                  name:
+                    description: KnativeEventing resource name. Defaults to knative-eventing.
+                    type: string
+                  namespace:
+                    description: Namespace for the KnativeEventing resource. Defaults to knative-eventing.
+                    type: string
+                  spec:
+                    description: Spec fields merged with defaults.
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  overrideAllSpec:
+                    description: Spec fields that replace all defaults.
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+              nats:
+                description: Configuration for the NATS component.
+                type: object
+                properties:
+                  enabled:
+                    description: Whether to install NATS. Defaults to false.
+                    type: boolean
+                    default: false
+                  name:
+                    description: Release name. Defaults to nats.
+                    type: string
+                  namespace:
+                    description: Namespace for this component. Defaults to nats.
+                    type: string
+                  values:
+                    description: Helm values merged with defaults.
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  overrideAllValues:
+                    description: Helm values that replace all defaults.
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+            required:
+            - clusterName
+          status:
+            description: MicroservicesStatus defines the observed state.
+            type: object
+            properties:
+              ready:
+                description: Overall readiness of the microservices stack.
+                type: boolean
+        required:
+        - spec

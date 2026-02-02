@@ -1,0 +1,17 @@
+apiVersion: stacks.hops.ops.com.ai/v1alpha1
+kind: Microservices
+metadata:
+  name: microservices
+  namespace: default
+spec:
+  clusterName: production-cluster
+  labels:
+    team: platform
+  knativeServing:
+    enabled: true
+    namespace: knative-serving
+  knativeEventing:
+    enabled: true
+    namespace: knative-eventing
+  nats:
+    enabled: true

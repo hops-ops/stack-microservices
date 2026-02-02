@@ -1,0 +1,31 @@
+# code: language=yaml
+#
+# Compose the base helm.hops.ops.com.ai/KnativeOperator XR
+#
+
+{{- $knOp := $state.knativeOperator }}
+
+---
+apiVersion: helm.hops.ops.com.ai/v1alpha1
+kind: KnativeOperator
+metadata:
+  name: {{ $state.name }}-{{ $knOp.name }}
+  annotations:
+    {{ setResourceNameAnnotation "knative-operator" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.managementPolicies | toJson }}
+  clusterName: {{ $state.clusterName }}
+  labels: {{ $state.labels | toJson }}
+  providerConfigRef:
+    name: {{ $state.helmProviderConfigRef.name }}
+    kind: {{ $state.helmProviderConfigRef.kind }}
+  namespace: {{ $knOp.namespace }}
+  name: {{ $knOp.name }}
+  {{- if $knOp.overrideAllValues }}
+  overrideAllValues:
+    {{- toYaml $knOp.overrideAllValues | nindent 4 }}
+  {{- else if $knOp.values }}
+  values:
+    {{- toYaml $knOp.values | nindent 4 }}
+  {{- end }}

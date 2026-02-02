@@ -1,0 +1,5 @@
+apiVersion: v2
+name: stack-microservices
+version: 0.0.0
+description: Deploys stack-microservices
+appVersion: v0.0.0

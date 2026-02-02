@@ -1,0 +1,74 @@
+# code: language=yaml
+#
+# Create KnativeEventing CR via provider-kubernetes Object resource
+#
+
+{{- $knServing := $state.knativeServing }}
+{{- $knEventing := $state.knativeEventing }}
+{{- $k8sPCR := $state.kubernetesProviderConfigRef }}
+{{- $servingNsReady := $state.observed.namespaceKnativeServing.ready }}
+{{- $eventingNsReady := $state.observed.namespaceKnativeEventing.ready }}
+{{- $eventingNsOk := or (and $knServing.enabled (eq $knEventing.namespace $knServing.namespace) $servingNsReady) $eventingNsReady }}
+
+# ==============================================================================
+# Knative Eventing
+# ==============================================================================
+# Gated on: knative-operator + eventing namespace must be ready
+{{- if and $knEventing.enabled $state.observed.knativeOperator.ready $eventingNsOk }}
+---
+apiVersion: kubernetes.m.crossplane.io/v1alpha1
+kind: Object
+metadata:
+  name: {{ $state.name }}-{{ $knEventing.name }}
+  annotations:
+    {{ setResourceNameAnnotation "knative-eventing" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.managementPolicies | toJson }}
+  forProvider:
+    manifest:
+      apiVersion: operator.knative.dev/v1beta1
+      kind: KnativeEventing
+      metadata:
+        name: {{ $knEventing.name }}
+        namespace: {{ $knEventing.namespace }}
+      spec:
+        {{- if $knEventing.overrideAllSpec }}
+        {{- toYaml $knEventing.overrideAllSpec | nindent 8 }}
+        {{- else }}
+        {{- toYaml $knEventing.spec | nindent 8 }}
+        {{- end }}
+  providerConfigRef:
+    name: {{ $k8sPCR.name }}
+    kind: {{ $k8sPCR.kind }}
+  readiness:
+    policy: DeriveFromCelQuery
+    celQuery: "has(object.metadata.uid)"
+{{- end }}
+
+# ==============================================================================
+# Usage: Protect knative-operator from deletion until knative-eventing is deleted
+# ==============================================================================
+# Knative CRDs must exist for cleanup of the KnativeEventing CR.
+{{- if and $state.observed.knativeOperator.ready $state.observed.knativeEventing.ready }}
+---
+apiVersion: protection.crossplane.io/v1beta1
+kind: Usage
+metadata:
+  name: {{ $state.name }}-delete-knative-eventing-before-knative-operator
+  annotations:
+    {{ setResourceNameAnnotation "usage-knative-eventing" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  replayDeletion: true
+  of:
+    apiVersion: helm.hops.ops.com.ai/v1alpha1
+    kind: KnativeOperator
+    resourceRef:
+      name: {{ $state.name }}-{{ $state.knativeOperator.name }}
+  by:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-{{ $knEventing.name }}
+{{- end }}
