@@ -161,6 +161,32 @@ _items = [
                         knativeEventing.enabled = True
                     }
                 }
+                # 3. Usage: delete Knative before IstioStack (Istio CRDs must exist during cleanup)
+                {
+                    apiVersion = "protection.crossplane.io/v1beta1"
+                    kind = "Usage"
+                    metadata = {
+                        name = "delete-knative-before-istio"
+                        namespace = "default"
+                    }
+                    spec = {
+                        replayDeletion = True
+                        of = {
+                            apiVersion = "stacks.hops.ops.com.ai/v1alpha1"
+                            kind = "IstioStack"
+                            resourceRef = {
+                                name = _istio_name
+                            }
+                        }
+                        by = {
+                            apiVersion = "stacks.hops.ops.com.ai/v1alpha1"
+                            kind = "Knative"
+                            resourceRef = {
+                                name = _test_name
+                            }
+                        }
+                    }
+                }
             ]
         }
     }
