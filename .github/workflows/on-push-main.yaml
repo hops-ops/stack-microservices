@@ -27,10 +27,10 @@ jobs:
     with:
       examples: |
         [
-          { "example": "examples/knative/minimal.yaml" },
-          { "example": "examples/knative/standard.yaml" }
+          { "example": "examples/knativestacks/minimal.yaml" },
+          { "example": "examples/knativestacks/standard.yaml" }
         ]
-      api_path: apis/knative
+      api_path: apis/knativestacks
       error_on_missing_schemas: true
 
   test:

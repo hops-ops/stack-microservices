@@ -1,6 +1,6 @@
 import datetime
 import math
-import models.ai.com.ops.hops.stacks.v1alpha1 as stacksv1alpha1
+import models.ai.com.ops.hops.v1alpha1 as stacksv1alpha1
 import models.io.upbound.dev.meta.v1alpha1 as metav1alpha1
 
 # ==============================================================================
@@ -9,7 +9,7 @@ import models.io.upbound.dev.meta.v1alpha1 as metav1alpha1
 # Components run in-cluster: Helm releases + provider-kubernetes Objects.
 # No cloud credentials needed - uses InjectedIdentity for both providers.
 #
-# Requires stack-istio to be installed first (provides Istio CRDs needed by
+# Requires istio-stack to be installed first (provides Istio CRDs needed by
 # PeerAuthentication resources in knative-serving).
 #
 # Run: make e2e
@@ -36,15 +36,15 @@ _items = [
             # initResources: Install dependency Configuration packages
             # ==============================================================
             initResources = [
-                # stack-istio Configuration package (provides IstioStack XRD + Istio CRDs)
+                # istio-stack Configuration package (provides IstioStack XRD + Istio CRDs)
                 {
                     apiVersion = "pkg.crossplane.io/v1"
                     kind = "Configuration"
                     metadata = {
-                        name = "stack-istio"
+                        name = "istio-stack"
                     }
                     spec = {
-                        package = "ghcr.io/hops-ops/stack-istio:v0.7.0"
+                        package = "ghcr.io/hops-ops/istio-stack:v0.9.0"
                     }
                 }
             ]
@@ -110,7 +110,7 @@ _items = [
             manifests = [
                 # 1. IstioStack - installs Istio CRDs needed by Knative PeerAuthentication
                 {
-                    apiVersion = "stacks.hops.ops.com.ai/v1alpha1"
+                    apiVersion = "hops.ops.com.ai/v1alpha1"
                     kind = "IstioStack"
                     metadata = {
                         name = _istio_name
@@ -138,7 +138,7 @@ _items = [
                     }
                 }
                 # 2. Knative XR
-                stacksv1alpha1.Knative {
+                stacksv1alpha1.KnativeStack {
                     metadata = {
                         name = _test_name
                         namespace = "default"
