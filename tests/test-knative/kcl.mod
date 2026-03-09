@@ -1,5 +1,5 @@
 [package]
-name = "test-temp-unit"
+name = "test-knative"
 version = "0.0.1"
 
 [dependencies]
