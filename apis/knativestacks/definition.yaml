@@ -1,12 +1,12 @@
 apiVersion: apiextensions.crossplane.io/v2
 kind: CompositeResourceDefinition
 metadata:
-  name: knatives.stacks.hops.ops.com.ai
+  name: knativestacks.hops.ops.com.ai
 spec:
-  group: stacks.hops.ops.com.ai
+  group: hops.ops.com.ai
   names:
-    kind: Knative
-    plural: knatives
+    kind: KnativeStack
+    plural: knativestacks
   scope: Namespaced
   versions:
   - name: v1alpha1
@@ -14,11 +14,11 @@ spec:
     served: true
     schema:
       openAPIV3Schema:
-        description: Knative stack deploying Knative Operator, Knative Serving/Eventing, and optional NATS.
+        description: KnativeStack deploys Knative Operator, Knative Serving/Eventing, and optional NATS.
         type: object
         properties:
           spec:
-            description: KnativeSpec defines the desired state.
+            description: KnativeStackSpec defines the desired state.
             type: object
             properties:
               clusterName:
@@ -164,7 +164,7 @@ spec:
             required:
             - clusterName
           status:
-            description: KnativeStatus defines the observed state.
+            description: KnativeStackStatus defines the observed state.
             type: object
             properties:
               ready:

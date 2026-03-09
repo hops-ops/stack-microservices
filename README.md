@@ -1,17 +1,17 @@
-# stack-knative
+# knative-stack
 
 A Crossplane Configuration package that deploys Knative Serving, Knative Eventing, and optional NATS JetStream on any Kubernetes cluster with Istio.
 
 ## Overview
 
-`stack-knative` installs and configures a complete serverless platform:
+`knative-stack` installs and configures a complete serverless platform:
 
 - **Knative Operator** — manages the lifecycle of Knative components via Helm
 - **Knative Serving** — autoscaling serverless workloads with Istio ingress, scale-to-zero, and revision management
 - **Knative Eventing** — event-driven architecture with pluggable channels and brokers
 - **NATS JetStream** (optional, enabled by default) — high-performance messaging backend for Knative Eventing channels
 
-The stack assumes Istio is already installed (e.g. via [stack-istio](https://github.com/hops-ops/stack-istio)) and configures Knative to use Istio for ingress, mTLS, and network policies.
+The stack assumes Istio is already installed (e.g. via [istio-stack](https://github.com/hops-ops/istio-stack)) and configures Knative to use Istio for ingress, mTLS, and network policies.
 
 Deletion protection (Usages) ensures correct teardown order: Serving/Eventing CRs are deleted before the Knative Operator that provides their CRDs.
 
@@ -31,14 +31,14 @@ Deletion protection (Usages) ensures correct teardown order: Serving/Eventing CR
 apiVersion: pkg.crossplane.io/v1
 kind: Configuration
 metadata:
-  name: stack-knative
+  name: knative-stack
 spec:
-  package: ghcr.io/hops-ops/stack-knative:latest
+  package: ghcr.io/hops-ops/knative-stack:latest
 ```
 
 ```yaml
-apiVersion: stacks.hops.ops.com.ai/v1alpha1
-kind: Knative
+apiVersion: hops.ops.com.ai/v1alpha1
+kind: KnativeStack
 metadata:
   name: knative
   namespace: default
@@ -55,8 +55,8 @@ This minimal spec installs the Knative Operator, Knative Serving (with Istio ing
 Minimal configuration — everything uses sensible defaults. Serving and Eventing are both enabled, NATS provides the default channel backend, and Istio handles ingress.
 
 ```yaml
-apiVersion: stacks.hops.ops.com.ai/v1alpha1
-kind: Knative
+apiVersion: hops.ops.com.ai/v1alpha1
+kind: KnativeStack
 metadata:
   name: knative
   namespace: default
@@ -75,8 +75,8 @@ spec:
 Add a hosted zone and cert-manager for automatic TLS on Knative services.
 
 ```yaml
-apiVersion: stacks.hops.ops.com.ai/v1alpha1
-kind: Knative
+apiVersion: hops.ops.com.ai/v1alpha1
+kind: KnativeStack
 metadata:
   name: knative
   namespace: default
@@ -99,8 +99,8 @@ spec:
 Override Helm values and Knative specs for specific requirements.
 
 ```yaml
-apiVersion: stacks.hops.ops.com.ai/v1alpha1
-kind: Knative
+apiVersion: hops.ops.com.ai/v1alpha1
+kind: KnativeStack
 metadata:
   name: knative
   namespace: default

@@ -1,5 +1,5 @@
-apiVersion: stacks.hops.ops.com.ai/v1alpha1
-kind: Knative
+apiVersion: hops.ops.com.ai/v1alpha1
+kind: KnativeStack
 metadata:
   name: knative
   namespace: default

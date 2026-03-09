@@ -1,7 +1,7 @@
 apiVersion: meta.dev.upbound.io/v2alpha1
 kind: Project
 metadata:
-  name: stack-knative
+  name: knative-stack
 spec:
   dependsOn:
   - apiVersion: pkg.crossplane.io/v1
@@ -21,8 +21,8 @@ spec:
   license: Apache-2.0
   maintainer: Patrick Lee Scott <pat@patscott.io>
   readme: |
-    # stack-knative
+    # knative-stack
 
     Deploys Knative Operator, Knative Serving/Eventing, and optional NATS.
-  repository: ghcr.io/hops-ops/stack-knative
-  source: github.com/hops-ops/stack-knative
+  repository: ghcr.io/hops-ops/knative-stack
+  source: github.com/hops-ops/knative-stack
