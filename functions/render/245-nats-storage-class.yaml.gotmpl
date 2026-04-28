@@ -1,0 +1,41 @@
+# code: language=yaml
+#
+# StorageClass for NATS JetStream PVCs (cluster-scoped Object).
+#
+# Removes the dependency on the cluster having a default StorageClass for the
+# right CSI. The NATS Helm values' storageClassName defaults to this SC's name
+# (see 000-state-init.yaml.gotmpl).
+#
+
+{{- $nats := $state.nats }}
+{{- $sc := $nats.storageClass }}
+{{- $k8sPCR := $state.kubernetesProviderConfigRef }}
+
+{{- if and $nats.enabled $sc.enabled }}
+---
+apiVersion: kubernetes.m.crossplane.io/v1alpha1
+kind: Object
+metadata:
+  name: {{ $state.name }}-{{ $sc.name }}-sc
+  annotations:
+    {{ setResourceNameAnnotation "nats-storage-class" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  managementPolicies: {{ $state.managementPolicies | toJson }}
+  forProvider:
+    manifest:
+      apiVersion: storage.k8s.io/v1
+      kind: StorageClass
+      metadata:
+        name: {{ $sc.name }}
+        labels: {{ $state.labels | toJson }}
+      provisioner: {{ $sc.provisioner }}
+      reclaimPolicy: {{ $sc.reclaimPolicy }}
+      volumeBindingMode: {{ $sc.volumeBindingMode }}
+      {{- if $sc.parameters }}
+      parameters: {{ toJson $sc.parameters }}
+      {{- end }}
+  providerConfigRef:
+    name: {{ $k8sPCR.name }}
+    kind: {{ $k8sPCR.kind }}
+{{- end }}

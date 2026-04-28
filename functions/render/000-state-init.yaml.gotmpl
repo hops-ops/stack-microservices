@@ -26,7 +26,7 @@
 # Labels
 {{- $defaultLabels := dict
   "hops.ops.com.ai/managed" "true"
-  "hops.ops.com.ai/knative" $name
+  (printf "hops.ops.com.ai/%s" (lower $xr.kind)) $name
 }}
 {{- $labels := merge $defaultLabels ($spec.labels | default dict) }}
 
@@ -111,6 +111,45 @@
 {{- $servingSpec := merge ($knServing.spec | default dict) $servingDefaults }}
 
 # ==============================================================================
+# NATS StorageClass (composed when nats.storageClass.enabled)
+# ==============================================================================
+{{- $natsSC := $nats.storageClass | default dict }}
+{{- $natsSCEnabled := $natsEnabled }}
+{{- if hasKey $natsSC "enabled" }}
+  {{- $natsSCEnabled = $natsSC.enabled }}
+{{- end }}
+{{- $natsSCName := $natsSC.name | default "knative-nats" }}
+{{- $natsSCProvisioner := $natsSC.provisioner | default "ebs.csi.eks.amazonaws.com" }}
+{{- $natsSCParameters := $natsSC.parameters | default (dict "type" "gp3") }}
+{{- $natsSCReclaimPolicy := $natsSC.reclaimPolicy | default "Delete" }}
+{{- $natsSCVolumeBindingMode := $natsSC.volumeBindingMode | default "WaitForFirstConsumer" }}
+
+# ==============================================================================
+# NATS default Helm values
+# ==============================================================================
+# When the stack composes its own StorageClass, default the NATS PVC
+# storageClassName to it (still overridable via nats.values).
+{{- $natsPVCDefaults := dict "size" "10Gi" }}
+{{- if $natsSCEnabled }}
+  {{- $natsPVCDefaults = set $natsPVCDefaults "storageClassName" $natsSCName }}
+{{- end }}
+{{- $natsDefaultValues := dict
+  "config" (dict
+    "cluster" (dict
+      "enabled" true
+      "replicas" 3
+    )
+    "jetstream" (dict
+      "enabled" true
+      "fileStore" (dict
+        "pvc" $natsPVCDefaults
+      )
+    )
+  )
+}}
+{{- $natsValues := mergeOverwrite (deepCopy $natsDefaultValues) ($nats.values | default dict) }}
+
+# ==============================================================================
 # Knative Eventing default spec (istio + NATS channel when enabled)
 # ==============================================================================
 {{- $eventingDefaults := dict
@@ -168,8 +207,16 @@
     "enabled" $natsEnabled
     "name" ($nats.name | default "nats")
     "namespace" ($nats.namespace | default "nats")
-    "values" ($nats.values | default dict)
+    "values" $natsValues
     "overrideAllValues" ($nats.overrideAllValues | default dict)
+    "storageClass" (dict
+      "enabled" $natsSCEnabled
+      "name" $natsSCName
+      "provisioner" $natsSCProvisioner
+      "parameters" $natsSCParameters
+      "reclaimPolicy" $natsSCReclaimPolicy
+      "volumeBindingMode" $natsSCVolumeBindingMode
+    )
   )
   "observed" (dict)
   "status" (dict)

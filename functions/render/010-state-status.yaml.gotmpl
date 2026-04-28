@@ -10,7 +10,7 @@
 # ==============================================================================
 
 {{- $checkReady := dict }}
-{{- range $key := list "knative-operator" "namespace-knative-serving" "namespace-knative-eventing" "knative-serving" "knative-serving-peer-auth" "knative-eventing" "nats" }}
+{{- range $key := list "knative-operator" "namespace-knative-serving" "namespace-knative-eventing" "knative-serving" "knative-serving-peer-auth" "knative-eventing" "nats" "nats-storage-class" }}
   {{- $entry := get $observed $key | default dict }}
   {{- $resource := $entry.resource | default dict }}
   {{- $status := $resource.status | default dict }}
@@ -34,6 +34,7 @@
   "knativeServingPeerAuth" (dict "ready" (get $checkReady "knative-serving-peer-auth"))
   "knativeEventing" (dict "ready" (get $checkReady "knative-eventing"))
   "nats" (dict "ready" (get $checkReady "nats"))
+  "natsStorageClass" (dict "ready" (get $checkReady "nats-storage-class"))
 ) }}
 
 # ==============================================================================

@@ -153,6 +153,37 @@ spec:
                   namespace:
                     description: Namespace for this component. Defaults to nats.
                     type: string
+                  storageClass:
+                    description: StorageClass composed for NATS JetStream PVCs. Removes the cluster-default-SC dependency — knative-stack provisions its own SC scoped to NATS. Disable to fall back to the cluster default. Provisioner defaults to the EKS Auto Mode CSI; override on standard EKS (ebs.csi.aws.com), GKE, AKS, etc.
+                    type: object
+                    properties:
+                      enabled:
+                        description: Whether to compose a StorageClass and point NATS PVCs at it. Defaults to true when nats.enabled.
+                        type: boolean
+                        default: true
+                      name:
+                        description: StorageClass name. Defaults to "knative-nats".
+                        type: string
+                      provisioner:
+                        description: CSI provisioner. Defaults to "ebs.csi.eks.amazonaws.com" (EKS Auto Mode). Set to "ebs.csi.aws.com" on standard EKS w/ EBS CSI addon, or your platform's CSI elsewhere.
+                        type: string
+                      parameters:
+                        description: Provisioner parameters (e.g. type, iops, throughput). Defaults to {type gp3} for EBS.
+                        type: object
+                        additionalProperties:
+                          type: string
+                      reclaimPolicy:
+                        description: Defaults to Delete.
+                        type: string
+                        enum:
+                        - Delete
+                        - Retain
+                      volumeBindingMode:
+                        description: Defaults to WaitForFirstConsumer.
+                        type: string
+                        enum:
+                        - Immediate
+                        - WaitForFirstConsumer
                   values:
                     description: Helm values merged with defaults.
                     type: object

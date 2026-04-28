@@ -6,7 +6,14 @@
 {{- $nats := $state.nats }}
 {{- $obs := $state.observed }}
 
-{{- if $nats.enabled }}
+# Gate on the composed StorageClass being ready (when enabled) so PVCs don't
+# sit Pending while NATS rolls out.
+{{- $natsGate := $nats.enabled }}
+{{- if and $nats.enabled $nats.storageClass.enabled (not $obs.natsStorageClass.ready) }}
+  {{- $natsGate = false }}
+{{- end }}
+
+{{- if $natsGate }}
 ---
 apiVersion: helm.m.crossplane.io/v1beta1
 kind: Release
@@ -23,24 +30,12 @@ spec:
       repository: https://nats-io.github.io/k8s/helm/charts/
       version: 2.12.4
     namespace: {{ $nats.namespace }}
-    {{- if $nats.overrideAllValues }}
     values:
+      {{- if $nats.overrideAllValues }}
       {{- toYaml $nats.overrideAllValues | nindent 6 }}
-    {{- else }}
-    values:
-      config:
-        cluster:
-          enabled: true
-          replicas: 3
-        jetstream:
-          enabled: true
-          fileStore:
-            pvc:
-              size: 10Gi
-      {{- if $nats.values }}
+      {{- else }}
       {{- toYaml $nats.values | nindent 6 }}
       {{- end }}
-    {{- end }}
   rollbackLimit: 3
   providerConfigRef:
     name: {{ $state.helmProviderConfigRef.name }}
@@ -70,6 +65,33 @@ spec:
     kind: Object
     resourceRef:
       name: {{ $state.name }}-{{ $state.knativeEventing.name }}
+{{- end }}
+
+# ==============================================================================
+# Usage: delete nats before its StorageClass (PVCs reference the SC by name; on
+# release teardown the CSI provisioner needs the SC to deprovision cleanly)
+# ==============================================================================
+{{- if and $nats.storageClass.enabled $obs.nats.ready $obs.natsStorageClass.ready }}
+---
+apiVersion: protection.crossplane.io/v1beta1
+kind: Usage
+metadata:
+  name: {{ $state.name }}-delete-nats-before-storage-class
+  annotations:
+    {{ setResourceNameAnnotation "usage-nats-before-storage-class" }}
+  labels: {{ $state.labels | toJson }}
+spec:
+  replayDeletion: true
+  of:
+    apiVersion: kubernetes.m.crossplane.io/v1alpha1
+    kind: Object
+    resourceRef:
+      name: {{ $state.name }}-{{ $nats.storageClass.name }}-sc
+  by:
+    apiVersion: helm.m.crossplane.io/v1beta1
+    kind: Release
+    resourceRef:
+      name: {{ $state.name }}-{{ $nats.name }}
 {{- end }}
 
 {{- end }}
