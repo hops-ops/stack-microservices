@@ -21,6 +21,21 @@ _items = [
                 metadata.name = "test-minimal"
                 spec.clusterName = "my-cluster"
             }
+            observedResources = [
+                # Composed StorageClass observed-ready — clears the NATS gate
+                {
+                    apiVersion = "kubernetes.m.crossplane.io/v1alpha1"
+                    kind = "Object"
+                    metadata = {
+                        name = "test-minimal-knative-nats-sc"
+                        annotations = {"crossplane.io/composition-resource-name" = "nats-storage-class"}
+                    }
+                    status.conditions = [
+                        {type = "Ready", status = "True"}
+                        {type = "Synced", status = "True"}
+                    ]
+                }
+            ]
             assertResources = [
                 # Operator always renders
                 {
@@ -79,6 +94,20 @@ _items = [
                     knativeServing.enabled = False
                 }
             }
+            observedResources = [
+                {
+                    apiVersion = "kubernetes.m.crossplane.io/v1alpha1"
+                    kind = "Object"
+                    metadata = {
+                        name = "test-no-serving-knative-nats-sc"
+                        annotations = {"crossplane.io/composition-resource-name" = "nats-storage-class"}
+                    }
+                    status.conditions = [
+                        {type = "Ready", status = "True"}
+                        {type = "Synced", status = "True"}
+                    ]
+                }
+            ]
             assertResources = [
                 # Operator still renders
                 {
@@ -119,6 +148,20 @@ _items = [
                     knativeEventing.enabled = False
                 }
             }
+            observedResources = [
+                {
+                    apiVersion = "kubernetes.m.crossplane.io/v1alpha1"
+                    kind = "Object"
+                    metadata = {
+                        name = "test-no-eventing-knative-nats-sc"
+                        annotations = {"crossplane.io/composition-resource-name" = "nats-storage-class"}
+                    }
+                    status.conditions = [
+                        {type = "Ready", status = "True"}
+                        {type = "Synced", status = "True"}
+                    ]
+                }
+            ]
             assertResources = [
                 # Operator renders
                 {
@@ -206,6 +249,20 @@ _items = [
                     }
                 }
             }
+            observedResources = [
+                {
+                    apiVersion = "kubernetes.m.crossplane.io/v1alpha1"
+                    kind = "Object"
+                    metadata = {
+                        name = "test-custom-pcr-knative-nats-sc"
+                        annotations = {"crossplane.io/composition-resource-name" = "nats-storage-class"}
+                    }
+                    status.conditions = [
+                        {type = "Ready", status = "True"}
+                        {type = "Synced", status = "True"}
+                    ]
+                }
+            ]
             assertResources = [
                 # Operator uses custom helm provider config
                 {
@@ -344,7 +401,7 @@ _items = [
                         name = "test-labels-knative-operator"
                         labels = {
                             "hops.ops.com.ai/managed" = "true"
-                            "hops.ops.com.ai/knative" = "test-labels"
+                            "hops.ops.com.ai/knativestack" = "test-labels"
                             "team" = "platform"
                             "env" = "prod"
                         }
@@ -378,6 +435,21 @@ _items = [
                     }
                 }
             }
+            observedResources = [
+                # storageClass.name not overridden, still defaults to "knative-nats"
+                {
+                    apiVersion = "kubernetes.m.crossplane.io/v1alpha1"
+                    kind = "Object"
+                    metadata = {
+                        name = "test-names-knative-nats-sc"
+                        annotations = {"crossplane.io/composition-resource-name" = "nats-storage-class"}
+                    }
+                    status.conditions = [
+                        {type = "Ready", status = "True"}
+                        {type = "Synced", status = "True"}
+                    ]
+                }
+            ]
             assertResources = [
                 {
                     apiVersion = "helm.m.crossplane.io/v1beta1"
@@ -420,6 +492,73 @@ _items = [
                     apiVersion = "helm.m.crossplane.io/v1beta1"
                     kind = "Release"
                     metadata.name = "test-bare-knative-operator"
+                }
+            ]
+        }
+    }
+
+    # =========================================================================
+    # Test 10: NATS gates on StorageClass — full contract.
+    # SC composes day-zero (asserted). NATS Release renders only after SC is
+    # observed-ready. The teardown Usage (delete-nats-before-storage-class)
+    # renders only when both NATS and SC are observed-ready, so its presence
+    # is end-to-end proof the gate has cleared.
+    # =========================================================================
+    metav1alpha1.CompositionTest {
+        metadata.name = "nats-gates-on-storage-class"
+        spec = {
+            compositionPath = _compositionPath
+            xrdPath = _xrdPath
+            timeoutSeconds = 60
+            validate = False
+            xr = hopsv1alpha1.KnativeStack {
+                metadata.name = "test-nats-gate"
+                spec.clusterName = "my-cluster"
+            }
+            observedResources = [
+                {
+                    apiVersion = "kubernetes.m.crossplane.io/v1alpha1"
+                    kind = "Object"
+                    metadata = {
+                        name = "test-nats-gate-knative-nats-sc"
+                        annotations = {"crossplane.io/composition-resource-name" = "nats-storage-class"}
+                    }
+                    status.conditions = [
+                        {type = "Ready", status = "True"}
+                        {type = "Synced", status = "True"}
+                    ]
+                }
+                {
+                    apiVersion = "helm.m.crossplane.io/v1beta1"
+                    kind = "Release"
+                    metadata = {
+                        name = "test-nats-gate-nats"
+                        annotations = {"crossplane.io/composition-resource-name" = "nats"}
+                    }
+                    status.conditions = [
+                        {type = "Ready", status = "True"}
+                        {type = "Synced", status = "True"}
+                    ]
+                }
+            ]
+            assertResources = [
+                # SC Object renders day-zero
+                {
+                    apiVersion = "kubernetes.m.crossplane.io/v1alpha1"
+                    kind = "Object"
+                    metadata.name = "test-nats-gate-knative-nats-sc"
+                }
+                # NATS Release renders once SC is observed-ready
+                {
+                    apiVersion = "helm.m.crossplane.io/v1beta1"
+                    kind = "Release"
+                    metadata.name = "test-nats-gate-nats"
+                }
+                # Teardown Usage renders only when both observed-ready
+                {
+                    apiVersion = "protection.crossplane.io/v1beta1"
+                    kind = "Usage"
+                    metadata.name = "test-nats-gate-delete-nats-before-storage-class"
                 }
             ]
         }
